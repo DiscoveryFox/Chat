@@ -32,44 +32,47 @@ class ClassicMessage:
     Text        : float
     To          : str
     MessageType: str
-
-
+    
+    
 
 class MultimediaMessage:
     pass
 
 
 class BaseMessage:
-    SendTime: float
-    Text: str
-    To: str
     MessageType: str
 
     def __init__(self, message: bytes, encoding: str = 'utf-8'):
         self.SIGN_BYTES: dict = {
-            0o0: self.register,
-            0o1: self.login,
-            0o2: self.message,
-        }
+            0o0: RegisterMessage,
+            0o1: LoginMessage,
+            0o2: ClassicMessage
+          }
         self.message: str = message.decode(encoding)
 
         self.sign_byte = int(self.message[:2])
-        self.message = message[2:]
+        self.data: str = self.message[2:]
 
         try:
-            self.message: dict = json.loads(self.message)
+            self.data: dict = json.loads(self.data)
         except json.JSONDecodeError as JsonError:
             print('JSONDecodeError in line 10 with string: ')
             print('-------------')
             print(f'Sign Byte: {self.sign_byte}')
-            print(self.message)
+            print(self.data)
             print('-------------')
             raise JsonError
 
-        self.SIGN_BYTES[self.sign_byte](self.message)
+        self.MessageType = self.SIGN_BYTES[self.sign_byte]
 
     def __new__(cls, *args, **kwargs):
-        return
+        match self.MessageType:
+            case RegisterMessage:
+                return RegisterMessage(self.data)
+            case LoginMessage:
+                return LoginMessage(self.data)
+            case ClassicMessage:
+                return ClassicMessage(self.data)
 
     def login(self, data: dict):
         self.MessageType = 'LoginMessage'
