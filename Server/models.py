@@ -37,6 +37,7 @@ class LoginMessage:
     def __init__(self, data):
         self.userid = data['userid']
         self.hashed_password = data['hashed_password']
+        self.ip: tuple | None = None
 
 class RegisterMessage:
     message_type: str = MessageType.RegisterMessage

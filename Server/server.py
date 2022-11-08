@@ -42,6 +42,22 @@ class UDPHandler(socketserver.BaseRequestHandler):
             message: models.LoginMessage
             message.ip = self.client_address # type: ignore 
             
+            if not database.is_active(message.id):
+                ...
+            '''
+            1. Need to create the message structure
+                mesage {
+                        message_type
+                        ip
+                        userid
+                        hashed_password
+                        }
+            2. check if user is currently logged in. Maybe log him out then
+            3. check if the password is correct.
+            4. log the user in -> activate, generate API-key, set ip
+            5. return the api-key to the requester
+            '''
+
 
         print(f'''
             Message from: {self.client_address[0]}
