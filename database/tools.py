@@ -5,10 +5,11 @@ import pandas as pd
 import time
 from secrets import compare_digest
 
+
 # todo: Still have to create a __new_cursor for every function so there will be no multithreading
 #  conflict in the future with a lot of requests to the API.
 
-#pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_columns', None)
 
 
 class Database:
@@ -262,15 +263,18 @@ class Database:
         __new_cursor.close()
         return False
 
-    def activate(self, id: int):
+    def activate(self, id: int, ip: tuple):
+        ip = json.dumps(ip)
         __new_cursor = self.connection.cursor()
         __new_cursor.execute('UPDATE users SET active = ? WHERE id = ?', (True, id))
+        __new_cursor.execute('UPDATE users SET ip_address = ? WHERE id = ?', (ip, id))
         self.connection.commit()
         __new_cursor.close()
 
     def deactivate(self, id: int):
         __new_cursor = self.connection.cursor()
         __new_cursor.execute('UPDATE users SET active = ? WHERE id = ?', (False, id))
+        __new_cursor.execute('UPDATE users SET ip_address = ? WHERE id = ?', ('NOT_DEFINED', id))
         self.connection.commit()
         __new_cursor.close()
 
@@ -307,6 +311,15 @@ class Database:
             userstring = self._get_user_by_id(id)
             return userstring[1]
         return None
+
+    def get_ip_of_user(self, id: int):
+        if self.check_user(id):
+            __new_cursor = self.connection.cursor()
+            __new_cursor.execute(f'SELECT ip_address FROM users WHERE id = {id}')
+            ip = __new_cursor.fetchone()
+            ip = json.loads(ip[0])
+            __new_cursor.close()
+            return tuple(ip)
 
     def close(self):
         self.__del__()

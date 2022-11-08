@@ -11,19 +11,32 @@ database = database.tools.Database('server.db')
 
 print(database)
 
+database.activate(101, ('127.0.0.1', 52303))
+
 
 class UDPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         data = self.request[0].strip()
-        print('----------')
         socket = self.request[1]
         message = models.BaseMessage(data)
-        print(message.MessageType)
+        print(message.message_type)
+        print(self.client_address)
+        if message.message_type == models.MessageType.RegisterMessage:
+            socket.sendto('RegisterMessage is not supported yet!'.encode('utf-8'),
+                          self.client_address)
+        elif message.message_type == models.MessageType.ClassicMessage:
+            id: int = int(message.to.split('#')[1])
+            if database.check_user(id) is not True:
+                # send back that the user does not exist or his account is not activated and return
+                ...
+            ip = database.get_ip_of_user(id)
+            socket.sendto('Message Received'.encode('utf-8'), self.client_address)
+
         print(f'''
             Message from: {self.client_address[0]}
-            To: {message.To}
-            Sent: {datetime.datetime.utcfromtimestamp(message.SendTime).strftime('%d-%m-%Y | %H:%M:%S')}
-            Message: {message.Text}
+            To: {message.to}
+            Sent: {datetime.datetime.utcfromtimestamp(message.send_time).strftime('%d-%m-%Y | %H:%M:%S')}
+            Message: {message.text}
         ''')
 
         print('----------')

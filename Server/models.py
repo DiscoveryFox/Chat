@@ -1,5 +1,6 @@
 import socket
 import json
+from dataclasses import dataclass
 
 '''
 message: dict = {
@@ -9,6 +10,13 @@ message: dict = {
     'To': Username
 }
 '''
+
+@dataclass
+class MessageType:
+    LoginMessage: str = 'LoginMessage'
+    RegisterMessage: str = 'RegisterMessage'
+    ClassicMessage: str = 'ClassicMessage'
+    MultimediaMessage: str = 'MultimediaMessage'
 
 
 class UserAlreadyExists(Exception):
@@ -20,48 +28,49 @@ class UserAlreadyExists(Exception):
 
 
 class LoginMessage:
-    MessageType: str = 'LoginMessage'
+    message_type: str = MessageType.LoginMessage
 
     def __init__(self, data):
         ...
 
 
 class RegisterMessage:
-    MessageType: str = 'RegisterMessage'
+    message_type: str = MessageType.RegisterMessage
 
     def __init__(self, data):
         ...
 
 
 class ClassicMessage:
-    SendTime: float
-    Text: float
-    To: str
-    MessageType: str = 'ClassicMessage'
+    send_time: float
+    text: float
+    to: str
+    message_type: str = MessageType.ClassicMessage
 
     def __init__(self, data):
-        self.Text = data['Message']
-        self.SendTime = data['SendTime']
-        self.From = data['From']
-        self.To = data['To']
+        self.text = data['Message']
+        self.send_time = data['SendTime']
+        self.sender = data['From']
+        self.to = data['To']
 
 
 class MultimediaMessage:
     SendTime: float
     To: str
     ContentLink: str
-    MessageType: str = 'MultimediaMessage'
+    message_type: str = MessageType.MultimediaMessage
 
     def __init__(self, data):
         ...
 
 
 class BaseMessage:
-    MessageType: str = 'BaseMessage'
+    message_type: str = 'BaseMessage'
     SIGN_BYTES: dict = {
-        0o0: 'RegisterMessage',
-        0o1: 'LoginMessage',
-        0o2: 'ClassicMessage'
+        0o0: MessageType.RegisterMessage,
+        0o1: MessageType.LoginMessage,
+        0o2: MessageType.ClassicMessage,
+        0o3: MessageType.MultimediaMessage
     }
 
     def __new__(cls, data, encoding='utf-8', *args, **kwargs):
@@ -69,27 +78,15 @@ class BaseMessage:
         sign_byte = int(data[:2])
         message: str = data[2:]
         data: dict = json.loads(message)
-        MessageType = BaseMessage.SIGN_BYTES[sign_byte]
-        match MessageType:
-            case RegisterMessage.MessageType:
+        message_type = BaseMessage.SIGN_BYTES[sign_byte]
+        match message_type:
+            case MessageType.RegisterMessage:
                 return RegisterMessage(data)
-            case LoginMessage.MessageType:
+            case MessageType.LoginMessage:
                 return LoginMessage(data)
-            case ClassicMessage.MessageType:
+            case MessageType.ClassicMessage:
                 return ClassicMessage(data)
+            case MessageType.MultimediaMessage:
+                return MultimediaMessage(data)
             case _:
                 return NotImplemented
-
-    def login(self, data: dict):
-        self.MessageType = 'LoginMessage'
-
-    def message(self, data: dict):
-        self.MessageType = 'ClassicalMessage'
-        self.SendTime = data['SendTime']
-        self.Text = data['Message']
-        self.To = data['To']
-
-    def register(self, data: dict):
-        self.MessageType = 'RegisterMessage'
-        self.Username = data['username']
-        self.Email = data['email']
