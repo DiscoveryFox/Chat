@@ -1,13 +1,15 @@
+# pyright: reportGeneralTypeIssues=false, reportMissingImports=false
 import socketserver
 import models
 import datetime
 import sys
 
-sys.path.append(r'C:\Users\Flinn\Documents\Chat')
+#sys.path.append(r'C:\Users\Flinn\Documents\Chat')
+sys.path.append('..')
 
 import database.tools
 
-database: database.tools.Database = database.tools.Database('server.db')
+database = database.tools.Database('server.db')
 
 print(database)
 
@@ -33,11 +35,17 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 # send back that the user does not exist or his account is not activated and return
                 ...
             ip = database.get_ip_of_user(id)
+            print('Ip')
+            print(ip)
             socket.sendto('Message Received'.encode('utf-8'), self.client_address)
+        elif message.message_type == models.MessageType.LoginMessage:
+            message: models.LoginMessage
+            message.ip = self.client_address # type: ignore 
+            
 
         print(f'''
             Message from: {self.client_address[0]}
-            To: {message.to}
+              To: {message.to}
             Sent: {datetime.datetime.utcfromtimestamp(message.send_time).strftime('%d-%m-%Y | %H:%M:%S')}
             Message: {message.text}
         ''')

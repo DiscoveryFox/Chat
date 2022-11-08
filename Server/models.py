@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues=false
 import socket
 import json
 from dataclasses import dataclass
@@ -29,10 +30,13 @@ class UserAlreadyExists(Exception):
 
 class LoginMessage:
     message_type: str = MessageType.LoginMessage
+    ip: tuple
+    userid: str
+    hashed_password: str
 
     def __init__(self, data):
-        ...
-
+        self.userid = data['userid']
+        self.hashed_password = data['hashed_password']
 
 class RegisterMessage:
     message_type: str = MessageType.RegisterMessage
