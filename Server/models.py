@@ -20,59 +20,65 @@ class UserAlreadyExists(Exception):
 
 
 class LoginMessage:
-    pass
+    MessageType: str = 'LoginMessage'
+
+    def __init__(self, data):
+        ...
 
 
 class RegisterMessage:
-    pass
+    MessageType: str = 'RegisterMessage'
+
+    def __init__(self, data):
+        ...
 
 
 class ClassicMessage:
-    SendTime    : float
-    Text        : float
-    To          : str
-    MessageType: str
-    
-    
+    SendTime: float
+    Text: float
+    To: str
+    MessageType: str = 'ClassicMessage'
+
+    def __init__(self, data):
+        self.Text = data['Message']
+        self.SendTime = data['SendTime']
+        self.From = data['From']
+        self.To = data['To']
+
 
 class MultimediaMessage:
-    pass
+    SendTime: float
+    To: str
+    ContentLink: str
+    MessageType: str = 'MultimediaMessage'
+
+    def __init__(self, data):
+        ...
 
 
 class BaseMessage:
-    MessageType: str
+    MessageType: str = 'BaseMessage'
+    SIGN_BYTES: dict = {
+        0o0: 'RegisterMessage',
+        0o1: 'LoginMessage',
+        0o2: 'ClassicMessage'
+    }
 
-    def __init__(self, message: bytes, encoding: str = 'utf-8'):
-        self.SIGN_BYTES: dict = {
-            0o0: RegisterMessage,
-            0o1: LoginMessage,
-            0o2: ClassicMessage
-          }
-        self.message: str = message.decode(encoding)
-
-        self.sign_byte = int(self.message[:2])
-        self.data: str = self.message[2:]
-
-        try:
-            self.data: dict = json.loads(self.data)
-        except json.JSONDecodeError as JsonError:
-            print('JSONDecodeError in line 10 with string: ')
-            print('-------------')
-            print(f'Sign Byte: {self.sign_byte}')
-            print(self.data)
-            print('-------------')
-            raise JsonError
-
-        self.MessageType = self.SIGN_BYTES[self.sign_byte]
-
-    def __new__(cls, *args, **kwargs):
-        match self.MessageType:
-            case RegisterMessage:
-                return RegisterMessage(self.data)
-            case LoginMessage:
-                return LoginMessage(self.data)
-            case ClassicMessage:
-                return ClassicMessage(self.data)
+    def __new__(cls, data, encoding='utf-8', *args, **kwargs):
+        data: str = data.decode(encoding)
+        sign_byte = int(data[:2])
+        message: str = data[2:]
+        data: dict = json.loads(message)
+        MessageType = BaseMessage.SIGN_BYTES[sign_byte]
+        match MessageType:
+            case RegisterMessage.MessageType:
+                return RegisterMessage(data)
+            case LoginMessage.MessageType:
+                return LoginMessage(data)
+            case ClassicMessage.MessageType:
+                return ClassicMessage(data)
+            case _:
+                return NotImplemented
 
     def login(self, data: dict):
         self.MessageType = 'LoginMessage'
