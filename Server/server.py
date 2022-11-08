@@ -7,11 +7,12 @@ sys.path.append(r'C:\Users\Flinn\Documents\Chat')
 
 import database.tools
 
-database = database.tools.Database('server.db')
+database: database.tools.Database = database.tools.Database('server.db')
 
 print(database)
 
 database.activate(101, ('127.0.0.1', 52303))
+
 
 
 class UDPHandler(socketserver.BaseRequestHandler):
@@ -22,9 +23,11 @@ class UDPHandler(socketserver.BaseRequestHandler):
         print(message.message_type)
         print(self.client_address)
         if message.message_type == models.MessageType.RegisterMessage:
+            message: models.RegisterMessage
             socket.sendto('RegisterMessage is not supported yet!'.encode('utf-8'),
                           self.client_address)
         elif message.message_type == models.MessageType.ClassicMessage:
+            message: models.ClassicMessage
             id: int = int(message.to.split('#')[1])
             if database.check_user(id) is not True:
                 # send back that the user does not exist or his account is not activated and return
