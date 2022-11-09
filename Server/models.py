@@ -60,9 +60,9 @@ class ClassicMessage:
 
 
 class MultimediaMessage:
-    SendTime: float
-    To: str
-    ContentLink: str
+    send_time: float
+    to: str
+    contentlink: str
     message_type: str = MessageType.MultimediaMessage
 
     def __init__(self, data):
