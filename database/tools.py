@@ -1,4 +1,5 @@
 import json
+import pickle
 import sqlite3
 import secrets
 import pandas as pd
@@ -13,11 +14,13 @@ from secrets import compare_digest
 
 
 class Database:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, pickle_path: str):
         self.used = False
         self.query = list()
         self.connection = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.connection.cursor()
+        self.db_path = db_path
+        self.pickle_path = pickle_path
 
     def __del__(self):
         self.connection.commit()
@@ -320,6 +323,22 @@ class Database:
             ip = json.loads(ip[0])
             __new_cursor.close()
             return tuple(ip)
+
+    def _update_ip_of_user(self, id: int, ip: tuple):
+        if self.check_user(id):
+            __new_cursor = self.connection.cursor()
+            __new_cursor.execute(f'UPDATE users SET ip_address = ? WHERE id = ?', (ip, id))
+            self.connection.commit()
+            __new_cursor.close()
+
+    def update_crypt_keys(self, public_key, private_key):
+        with open(self.pickle_path, 'wb') as pickle_file:
+            pickle.dump((public_key, private_key), pickle_file)
+
+    def get_crypt_keys(self):
+        with open(self.pickle_path, 'rb') as pickle_file:
+            keys: tuple = pickle.load(pickle_file)
+            return keys
 
     def close(self):
         self.__del__()
