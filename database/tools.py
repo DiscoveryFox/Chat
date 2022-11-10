@@ -12,6 +12,8 @@ from secrets import compare_digest
 
 # pd.set_option('display.max_columns', None)
 
+# TODO: Store the public key in database. Update it on activate and deactive and write a function
+#  to return him. Also maybe to change him manually
 
 class Database:
     def __init__(self, db_path: str, pickle_path: str):
@@ -39,7 +41,13 @@ class Database:
         __new_cursor.close()
         return password
 
-    def add_user(self, username: str, email: str, password) -> str:
+    def add_user(self, username: str, email: str, password: str) -> str:
+        """
+        :param username:
+        :param email:
+        :param password: str: The hashed Password. Algorithm blake2b is used in the script.
+        :return:
+        """
         # get the highest id from the Database
         __new_cursor = self.connection.cursor()
         __new_cursor.execute("SELECT MAX(id) FROM users")
@@ -331,6 +339,11 @@ class Database:
             self.connection.commit()
             __new_cursor.close()
 
+    def get_public_key_of_user(self, id: int):
+        __new_cursor = self.connection.cursor()
+        __new_cursor.execute(f'SELECT public_key FROM users WHERE id = {id}')
+
+
     def update_crypt_keys(self, public_key, private_key):
         with open(self.pickle_path, 'wb') as pickle_file:
             pickle.dump((public_key, private_key), pickle_file)
@@ -339,6 +352,7 @@ class Database:
         with open(self.pickle_path, 'rb') as pickle_file:
             keys: tuple = pickle.load(pickle_file)
             return keys
+
 
     def close(self):
         self.__del__()

@@ -72,9 +72,10 @@ class UDPHandler(socketserver.BaseRequestHandler):
             message.ip = self.client_address  # type: ignore
 
             if database.is_active(message.id):
-                sock.sendto(crypt.encrypt(data='01User is already logged in.',
-                                          public_key=message.client_public_key),
-                            message.ip)
+                current_ip = database.get_ip_of_user(message.id)
+                sock.sendto(crypt.encrypt(data=json.dumps({'Exception': 'NewUserLogin'}),
+                                          public_key=database.get_public_key_of_user(message.id)),
+                            current_ip)
                 return
             database.activate(message.id, message.ip)
             api_key = database.generate_api_key(message.id)
