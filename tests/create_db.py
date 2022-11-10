@@ -19,10 +19,11 @@ cursor.execute("""CREATE TABLE users(
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     online BOOLEAN NOT NULL DEFAULT FALSE,
-    ip_address TEXT NOT NULL DEFAULT 'NOT_DEFINED'
+    ip_address TEXT NOT NULL DEFAULT 'NOT_DEFINED',
+    public_key TEXT 
 )""")
 
-cursor.execute("""CREATE TABLE messages(
+cursor.execute("""CREATE TABLE messages (
     ids TEXT NOT NULL,
     message TEXT NOT NULL,
     timestamp INTEGER NOT NULL,

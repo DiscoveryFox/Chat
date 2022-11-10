@@ -5,7 +5,7 @@ import database.tools
 
 fake = faker.Faker()
 
-database = database.tools.Database(r'C:\Users\Flinn\Documents\Chat\Server\server.db')
+database = database.tools.Database(r'C:\Users\Flinn\Documents\Chat\Server\server.db', r'C:\Users\Flinn\Documents\Chat\Server\server.pickle')
 # '''
 for x in range(100):
     name = fake.name()
