@@ -15,7 +15,7 @@ HOST, PORT = "127.0.0.1", 9999
 USERNAME = 'flinnfx#101'
 
 
-# noinspection PyTypeChecker
+# noinspection PyTypeChecker,DuplicatedCode
 
 
 def encrypt(data: str, public_key, encoding: str = 'utf-8') -> bytes:
