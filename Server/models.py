@@ -42,7 +42,7 @@ class LoginMessage:
     def __init__(self, data):
         self.userid = data['UserID']
         self.id = self.userid.split('#')[1]
-        self.hashed_password = data['hashed_password']
+        self.hashed_password = data['Password']
         self.client_public_key = rsa.PublicKey.load_pkcs1(data['client_public_key'].encode('utf-8'))
         self.ip: tuple | None = None
 
@@ -116,7 +116,12 @@ class BaseMessage:
         try:
             for n in range(0, len(data), 256):
                 part = data[n:n + 256]
-                decrypted_part = rsa.decrypt(part, private_key).decode('utf-8')
+                try:
+                    decrypted_part = rsa.decrypt(part, private_key).decode('utf-8')
+                except rsa.pkcs1.DecryptionError as crypt_error:
+                    print('DecryptionError')
+                    print(part)
+                    continue
                 result.append(decrypted_part)
                 print(decrypted_part)
         except rsa.DecryptionError as De:

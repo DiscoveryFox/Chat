@@ -116,6 +116,7 @@ login_data: bytes = b''.join(result)
 print(login_data)
 print('Sending data...')
 sock.sendto(login_data, (HOST, PORT))
+api_key = decrypt(sock.recv(1024), client_private_key)
 while True:
     y = sock.recv(1024)
     try:
@@ -127,8 +128,11 @@ while True:
         print('Content is not encrypted!')
         print(y)
 print('end')
+
+
 # print(server_publicKey)
 # print(type(server_publicKey))
 
 # print("Sent:     {}".format(data))
 # print("Received: {}".format(received))
+send_message('Hello World!', api_key, server_publicKey)

@@ -2,6 +2,8 @@ import json
 import pickle
 import sqlite3
 import secrets
+from typing import Tuple, Any
+
 import pandas as pd
 import time
 from secrets import compare_digest
@@ -14,6 +16,10 @@ from secrets import compare_digest
 
 # TODO: Store the public key in database. Update it on activate and deactive and write a function
 #  to return him. Also maybe to change him manually
+
+# "active" means
+# "authenticated" means the email is okay.
+
 
 class Database:
     def __init__(self, db_path: str, pickle_path: str):
@@ -41,7 +47,7 @@ class Database:
         __new_cursor.close()
         return password
 
-    def add_user(self, username: str, email: str, password: str) -> str:
+    def add_user(self, username: str, email: str, password: str) -> tuple[int | Any, str]:
         """
         :param username:
         :param email:
@@ -60,11 +66,17 @@ class Database:
 
         auth_token = secrets.token_urlsafe(8)
 
-        self.cursor.execute(
+        __new_cursor.execute(
             "INSERT INTO users ( username, userid, email, password, auth_token) VALUES ("
             "?, "
             "?, ?, "
             "?, ?)", (username, f'{username}#{id}', email, password, auth_token))
+
+        __new_cursor.execute(f'''
+        CREATE TABLE "{id}"(
+            friend_id INTEGER PRIMARY KEY NOT NULL 
+        )
+        ''')
 
         self.connection.commit()
         return id, auth_token
@@ -133,7 +145,61 @@ class Database:
         else:
             return json.loads(contacts)
 
-    def add_contact(self, id: int, contact_id: int) -> None:
+    def add_friend(self, id: int, friend_id: int):
+        if not self.check_user(friend_id):
+            return False, 'friend id not valid'
+        if not self.check_user(id):
+            return False, 'id not valid'
+
+        __new_cursor = self.connection.cursor()
+        try:
+            __new_cursor.execute(f'''
+                INSERT INTO "{id}" (friend_id) VALUES ({friend_id})
+            ''')
+
+            __new_cursor.execute(f'''
+                INSERT INTO "{friend_id}" (friend_id) VALUES ({id})
+            ''')
+        except sqlite3.IntegrityError:
+            return False, 'Already Friends'
+        self.connection.commit()
+        __new_cursor.close()
+        return True
+
+    def remove_friend(self, id: int, friend_id: int):
+        __new_cursor = self.connection.cursor()
+        __new_cursor.execute(f'''
+        DELETE FROM "{id}" WHERE friend_id="{friend_id}"
+        ''')
+
+        __new_cursor.execute(f'''
+        DELETE FROM "{friend_id}" WHERE friend_id="{id}"
+        ''')
+
+        self.connection.commit()
+        __new_cursor.close()
+
+    def get_friends(self, id: int):
+        __new_cursor = self.connection.cursor()
+        __new_cursor.execute(f'''
+        SELECT * FROM "{id}"
+        ''')
+
+        result = __new_cursor.fetchall()
+
+        __new_cursor.close()
+        return [int(f_id[0]) for f_id in result]
+
+    def _add_contact(self, id: int, contact_id: int) -> None:
+        """
+        DEPRECATED DO NOT USE!
+
+        :param id:
+        :param contact_id:
+        :return:
+        """
+
+        # Deprecated don't use!
         # For the ID user
         self.cursor.execute("SELECT contacts FROM users WHERE id = ?", (id,))
         contacts = self.cursor.fetchone()[0]
@@ -159,7 +225,13 @@ class Database:
         # Commit for both users
         self.connection.commit()
 
-    def remove_contact(self, id: int, contact_id: int) -> None:
+    def _remove_contact(self, id: int, contact_id: int) -> None:
+        """
+        DEPRECATED DO NOT USE!
+        :param id:
+        :param contact_id:
+        :return:
+        """
         self.cursor.execute("SELECT contacts FROM users WHERE id = ?", (id,))
         contacts = self.cursor.fetchone()[0]
         if contacts is None:
@@ -343,6 +415,43 @@ class Database:
         __new_cursor = self.connection.cursor()
         __new_cursor.execute(f'SELECT public_key FROM users WHERE id = {id}')
 
+        key = __new_cursor.fetchone()
+
+        __new_cursor.close()
+        return key
+
+    def is_online(self, id: int):
+        if not self.check_user(id):
+            return None
+        else:
+            __new_cursor = self.connection.cursor()
+            __new_cursor.execute(f'''
+            SELECT online from users WHERE id = ?
+            ''', (True,))
+
+            online = __new_cursor.fetchone()
+
+            return False if online[0] == 0 else True
+
+    def set_online(self, id: int, ip: tuple) -> object:
+        ip = json.dumps(ip)
+        __new_cursor = self.connection.cursor()
+        __new_cursor.execute('UPDATE users SET ip_address = ? WHERE id = ?', (ip, id))
+        __new_cursor.execute('UPDATE users SET online = ? WHERE id = ?', (True, id))
+
+        self.connection.commit()
+        __new_cursor.close()
+        return True
+
+    def set_offline(self, id: int):
+        __new_cursor = self.connection.cursor()
+        __new_cursor.execute('UPDATE users SET online = ? WHERE id = ?', (False, id))
+        __new_cursor.execute('UPDATE users SET ip_address = ? WHERE id = ?', ('NOT_DEFINED', id))
+
+        self.connection.commit()
+        __new_cursor.close()
+        return True
+
 
     def update_crypt_keys(self, public_key, private_key):
         with open(self.pickle_path, 'wb') as pickle_file:
@@ -352,7 +461,6 @@ class Database:
         with open(self.pickle_path, 'rb') as pickle_file:
             keys: tuple = pickle.load(pickle_file)
             return keys
-
 
     def close(self):
         self.__del__()

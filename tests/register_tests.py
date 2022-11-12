@@ -1,7 +1,16 @@
-import requests
+import database.tools
 
-response = requests.post('http://127.0.0.1:5000/register', data={"username": "Flinn",
-                                                                 "email": "flinn.handymail@gmail.com",
-                                                                 "password.txt": "123"})
+db = database.tools.Database(r'C:\Users\Flinn\Documents\Chat\Server\server.db',
+                             r'C:\Users\Flinn\Documents\Chat\Server\server.pickle')
 
-print(response.text)
+x = db.add_friend(101, 90)
+
+
+# db.remove_friend(101, 90)
+
+y = db.get_friends(101)
+
+print(db.is_online(1))
+
+print(x)
+print(y)

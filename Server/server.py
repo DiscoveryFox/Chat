@@ -26,6 +26,11 @@ public_key, private_key = database.get_crypt_keys()
 
 def test_keys():
     test_value_one = 'All inner cows view each other, only fraternal saints have a history.'
+    'All inner cows view each other, only fraternal saints have a history.'  # Dummy Text
+    'All inner cows view each other, only fraternal saints have a history.'  # Dummy Text
+    'All inner cows view each other, only fraternal saints have a history.'  # Dummy Text
+    'All inner cows view each other, only fraternal saints have a history.'  # Dummy Text
+    # dummy text
     enc_test_value_one = rsa.encrypt(test_value_one.encode('utf-8'), public_key)
     dec_test_value_one = rsa.decrypt(enc_test_value_one, private_key).decode('utf-8')
     assert test_value_one == dec_test_value_one
@@ -47,6 +52,7 @@ if public_key is None or private_key is None:
     crypt.gen_new_keys(database)
 
 
+# TODO: Check if the new is_online/offline works not instead of activate and/or deactive
 class UDPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         data = self.request[0].strip()
@@ -59,25 +65,37 @@ class UDPHandler(socketserver.BaseRequestHandler):
         elif message.message_type == models.MessageType.ClassicMessage:
             message: models.ClassicMessage
             id: int = int(message.to.split('#')[1])
+            print('message')
             print(message.text)
-            if database.check_user(id) is not True:
+            if not database.check_user(id):
                 # send back that the user does not exist or his account is not activated and return
                 return
-            if database.is_active(id) is not True:
+            if database.is_authenticated(id):
                 return
             ip = database.get_ip_of_user(id)
-            sock.sendto('Message Received'.encode('utf-8'), self.client_address)
+            sock.sendto('Message Received. Forwarding...'.encode('utf-8'), self.client_address)
+            receiver_pub_key = database.get_public_key_of_user(id)
+            if receiver_pub_key is None:
+                sock.sendto('Message Received. Public Key of receiver is weird tell him '
+                            'to create a new one...'.encode('utf-8'),
+                            self.client_address)
+                return
+            else:
+                sock.sendto(crypt.encrypt(message.text, receiver_pub_key))
+
         elif message.message_type == models.MessageType.LoginMessage:
             message: models.LoginMessage
             message.ip = self.client_address  # type: ignore
 
-            if database.is_active(message.id):
+            if database.is_online(message.id):
                 current_ip = database.get_ip_of_user(message.id)
+                receiver_pub_key = rsa.PublicKey.load_pkcs1(database.get_public_key_of_user(
+                    message.id)[0])
                 sock.sendto(crypt.encrypt(data=json.dumps({'Exception': 'NewUserLogin'}),
-                                          public_key=database.get_public_key_of_user(message.id)),
+                                          public_key=receiver_pub_key),
                             current_ip)
                 return
-            database.activate(message.id, message.ip)
+            database.set_online(message.id, message.ip)
             api_key = database.generate_api_key(message.id)
             print(message.client_public_key)
             sock.sendto(crypt.encrypt(data=api_key, public_key=message.client_public_key),
@@ -86,7 +104,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
             message: models.LogoutMessage
             message.ip = self.client_address
 
-            database.deactivate(message.id)
+            database.set_offline(message.id)
 
             '''
             1. Need to create the message structure
