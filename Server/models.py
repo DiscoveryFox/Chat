@@ -72,7 +72,7 @@ class RegisterMessage:
 
 class ClassicMessage:
     send_time: float
-    text: float
+    text: str
     to: str
     api_key: str
 
