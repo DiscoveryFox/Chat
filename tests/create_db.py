@@ -12,7 +12,7 @@ cursor.execute("""CREATE TABLE users(
     userid VARCHAR(50) NOT NULL,
     email VARCHAR(50) NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    api_key TEXT,
+    api_key TEXT UNIQUE,
     contacts TEXT,
     authenticated BOOLEAN NOT NULL DEFAULT FALSE,
     auth_token TEXT UNIQUE,

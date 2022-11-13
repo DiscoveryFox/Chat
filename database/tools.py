@@ -8,6 +8,8 @@ import pandas as pd
 import time
 from secrets import compare_digest
 
+import rsa.key
+
 
 # todo: Still have to create a __new_cursor for every function so there will be no multithreading
 #  conflict in the future with a lot of requests to the API.
@@ -17,8 +19,18 @@ from secrets import compare_digest
 # TODO: Store the public key in database. Update it on activate and deactive and write a function
 #  to return him. Also maybe to change him manually
 
+
+# TODO: Remove the redundant pieces in the db and think about if this is really the right way or
+#  if you maybe wanna move all not authenticated users in a separate db or smth
+
+# TODO: Reload databse with the new scheme so drop all custom tables and re-instantiate them
 # "active" means
 # "authenticated" means the email is okay.
+
+# TODO: Finish user class.
+class User:
+    def __init__(self, id: int, username: str, hashed_password: str, api_key: list, ):
+        ...
 
 
 class Database:
@@ -46,6 +58,16 @@ class Database:
         password = __new_cursor.fetchone()[0]
         __new_cursor.close()
         return password
+
+    def check_password(self, id: int, hashed_password: str):
+        __new_cursor = self.connection.cursor()
+        __new_cursor.execute(f'SELECT password FROM users WHERE id = ?', (id, ))
+        passwd = __new_cursor.fetchone()[0]
+        __new_cursor.close()
+        if passwd == hashed_password:
+            return True
+        else:
+            return False
 
     def add_user(self, username: str, email: str, password: str) -> tuple[int | Any, str]:
         """
@@ -127,15 +149,36 @@ class Database:
         else:
             return False
 
+    def get_user_of_api_key(self, api_key: str):
+        for user in self.get_all_users():
+            # TODO: Change user[5][1] to user object with dot notation here.
+            if user[5] is not None:
+                if user[5][1] == api_key:
+                    return user
+
     def get_all_users(self) -> list:
         self.cursor.execute("SELECT * FROM users")
         data = self.cursor.fetchall()
-        newdata = list()
-        for entry in data:
+
+        newdata: list = []
+        final_data: list = []
+        for entry in data.copy():
+            if entry[5] is None:
+                newdata.append(entry)
+                continue
             entry = list(entry)
             entry[5] = json.loads(entry[5])
             newdata.append(entry)
-        return newdata
+
+        for entry in newdata.copy():
+            if entry[12] == 'NOT_DEFINED':
+                final_data.append(entry)
+                continue
+            entry = list(entry)
+            entry[12] = json.loads(entry[12])
+            final_data.append(entry)
+
+        return final_data
 
     def get_contacts(self, id: int) -> list:
         self.cursor.execute("SELECT contacts FROM users WHERE id = ?", (id,))
@@ -400,6 +443,8 @@ class Database:
             __new_cursor = self.connection.cursor()
             __new_cursor.execute(f'SELECT ip_address FROM users WHERE id = {id}')
             ip = __new_cursor.fetchone()
+            if ip == 'NOT_DEFINED':
+                return 'NOT_DEFINED'
             ip = json.loads(ip[0])
             __new_cursor.close()
             return tuple(ip)
@@ -422,22 +467,26 @@ class Database:
 
     def is_online(self, id: int):
         if not self.check_user(id):
-            return None
+            print('User does not exist')
+            return False
         else:
             __new_cursor = self.connection.cursor()
             __new_cursor.execute(f'''
-            SELECT online from users WHERE id = ?
-            ''', (True,))
+            SELECT online from users WHERE id = {id}
+            ''')
 
             online = __new_cursor.fetchone()
 
             return False if online[0] == 0 else True
 
-    def set_online(self, id: int, ip: tuple) -> object:
+    def set_online(self, id: int, ip: tuple, public_key) -> object:
         ip = json.dumps(ip)
+        if isinstance(public_key, rsa.key.PublicKey):
+            public_key = rsa.PublicKey.save_pkcs1(public_key).decode('utf-8')
         __new_cursor = self.connection.cursor()
         __new_cursor.execute('UPDATE users SET ip_address = ? WHERE id = ?', (ip, id))
         __new_cursor.execute('UPDATE users SET online = ? WHERE id = ?', (True, id))
+        __new_cursor.execute('UPDATE users SET public_key = ? WHERE id = ?', (public_key, id))
 
         self.connection.commit()
         __new_cursor.close()
@@ -447,11 +496,11 @@ class Database:
         __new_cursor = self.connection.cursor()
         __new_cursor.execute('UPDATE users SET online = ? WHERE id = ?', (False, id))
         __new_cursor.execute('UPDATE users SET ip_address = ? WHERE id = ?', ('NOT_DEFINED', id))
+        __new_cursor.execute('UPDATE users SET api_key = ? WHERE id = ?', (None, id))
 
         self.connection.commit()
         __new_cursor.close()
         return True
-
 
     def update_crypt_keys(self, public_key, private_key):
         with open(self.pickle_path, 'wb') as pickle_file:

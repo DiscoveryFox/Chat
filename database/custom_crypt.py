@@ -40,6 +40,9 @@ def load_key(str_key):
 
 def encrypt(data: str, public_key, encoding: str = 'utf-8') -> bytes:
     result: list = []
+    if isinstance(public_key, tuple):
+        if isinstance(public_key[0], (bytes, str)):
+            public_key = rsa.PublicKey.load_pkcs1(public_key[0])
     for n in range(0, len(data), 245):
         part = data[n:n + 245]
         result.append(rsa.encrypt(part.encode(encoding), public_key))

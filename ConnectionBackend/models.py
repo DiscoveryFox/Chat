@@ -1,26 +1,9 @@
 import hashlib
+from pprint import pprint
 import socket
 import json
-
+import time
 import rsa
-
-
-# noinspection DuplicatedCode
-def encrypt(data: str, public_key, encoding: str = 'utf-8') -> bytes:
-    result: list = []
-    for n in range(0, len(data), 245):
-        part = data[n:n + 245]
-        result.append(rsa.encrypt(part.encode(encoding), public_key))
-    return b''.join(result)
-
-
-def decrypt(data: bytes, private_key, encoding: str = 'utf-8') -> str:
-    result: list = []
-    for n in range(0, len(data), 256):
-        part = data[n:n + 256]
-        decrypted_part = rsa.decrypt(part, private_key).decode(encoding)
-        result.append(decrypted_part)
-    return ''.join(result)
 
 
 class MessageType:
@@ -31,6 +14,9 @@ class MessageType:
     ServePublicKey: str = 'ServePublicKey'
     LogoutMessage: str = 'LogoutMessage'
 
+
+class WrongPasswordError(Exception):
+    ...
 
 class ServerConnection:
     SIGN_BYTES: dict = {
@@ -46,18 +32,20 @@ class ServerConnection:
                  ip: tuple[str, int],
                  client_public_key: rsa.PublicKey | None = None,
                  server_public_key: rsa.PublicKey | None = None,
+                 client_private_key: rsa.PrivateKey | None = None,
                  userid: str | None = None,
                  hashed_password: str | None = None,
                  password: str | None = None):
         self.api_key = None
         self.sock: socket.SocketType = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.ip = ip
+        self.server_ip = ip
         self.client_public_key = client_public_key
+        self.client_private_key = client_private_key
         if self.client_public_key is None:
             self.client_public_key, self.client_private_key = rsa.newkeys(2048)
         if server_public_key is None:
             self.sock.sendto(bytes('04{}', 'utf-8'), ip)
-            key_str = self.sock.recv(1024)
+            key_str = self.sock.recv(2048)
             self.server_public_key = rsa.key.PublicKey.load_pkcs1(key_str)
         else:
             self.server_public_key = server_public_key
@@ -80,18 +68,20 @@ class ServerConnection:
         self.api_key: str
         login_request: dict = {
             'UserID': userid,
-            'hashed_password': hashed_password,
+            'Password': hashed_password,
             'client_public_key': self.client_public_key.save_pkcs1().decode('utf-8')
         }
         login_request_serialized = '01' + json.dumps(login_request)
         self.send_data(login_request_serialized)
-        response = decrypt(self.sock.recv(1024), self.client_private_key)
+        response = self.decrypt(self.sock.recv(4096))
         if response == '01User is already logged in.':
-            pass
+            ...
+        elif response == '{"Exception": "Wrong UserID"}':
+            raise WrongPasswordError
+        elif response == '{"Exception": "Wrong Password"}':
+            raise WrongPasswordError
         else:
             self.api_key = response
-
-        print(self.api_key)
 
     def _send_message(self, message, sign_byte):
         """
@@ -109,11 +99,35 @@ class ServerConnection:
         :return: Nothing
         """
         if encrypted:
-            crypt_data: bytes = encrypt(data, self.server_public_key)
-            self.sock.sendto(crypt_data, self.ip)
+            crypt_data: bytes = self.encrypt(data)
+            self.sock.sendto(crypt_data, self.server_ip)
         else:
-            self.sock.sendto(data.encode(encoding), self.ip)
+            self.sock.sendto(data.encode(encoding), self.server_ip)
 
-    def send_message(self, message: str, receiver: str):
+    def send_message(self, message: str, receiver: str, debug=False):
+        message_struct = {
+            'Message': message,
+            'SendTime': time.time(),
+            'ApiKey': self.api_key,
+            'To': receiver,
+            'From': 'flinnfx#101'
+        }
+        if debug is True:
+            pprint(message_struct)
+        self.send_data('02'+json.dumps(message_struct))
 
-        ...
+    def decrypt(self, data: bytes, encoding: str = 'utf-8') -> str:
+        result: list = []
+        for n in range(0, len(data), 256):
+            part = data[n:n + 256]
+            decrypted_part = rsa.decrypt(part, self.client_private_key).decode(encoding)
+            result.append(decrypted_part)
+        return ''.join(result)
+
+    # noinspection DuplicatedCode
+    def encrypt(self, data: str, encoding: str = 'utf-8') -> bytes:
+        result: list = []
+        for n in range(0, len(data), 245):
+            part = data[n:n + 245]
+            result.append(rsa.encrypt(part.encode(encoding), self.server_public_key))
+        return b''.join(result)

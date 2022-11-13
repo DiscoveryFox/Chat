@@ -23,6 +23,7 @@ class MessageType:
     MultimediaMessage: str = 'MultimediaMessage'
     ServePublicKey: str = 'ServePublicKey'
     LogoutMessage: str = 'LogoutMessage'
+    ForwardingClassicMessage: str = 'ForwardingClassicMessage'
 
 
 class UserAlreadyExists(Exception):
@@ -83,6 +84,27 @@ class ClassicMessage:
         self.send_time = data['SendTime']
         self.api_key = data['ApiKey']
         self.to = data['To']
+        self.from_userid: str = data['From']
+        self.id = self.from_userid.split('#')[1]
+
+
+    def toJson(self):
+        return json.dumps(self.__dict__)
+
+
+class ForwardingClassicMessage:
+    message_type = MessageType.ForwardingClassicMessage
+
+    def __init__(self, message: ClassicMessage, from_id: int):
+        self.text = message.text
+        self.sender = from_id
+        self.send_time = message.send_time
+
+    def __str__(self):
+        return json.dumps(self.__dict__)
+
+    def toJson(self):
+        return json.dumps(self.__dict__)
 
 
 class MultimediaMessage:
@@ -123,7 +145,6 @@ class BaseMessage:
                     print(part)
                     continue
                 result.append(decrypted_part)
-                print(decrypted_part)
         except rsa.DecryptionError as De:
             raise De
         data: str = ''.join(result)

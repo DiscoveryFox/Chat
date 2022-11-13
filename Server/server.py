@@ -64,42 +64,69 @@ class UDPHandler(socketserver.BaseRequestHandler):
                         self.client_address)
         elif message.message_type == models.MessageType.ClassicMessage:
             message: models.ClassicMessage
-            id: int = int(message.to.split('#')[1])
-            print('message')
-            print(message.text)
-            if not database.check_user(id):
+            receiver_id: int = int(message.to.split('#')[1])
+            if not database.check_user(receiver_id):
                 # send back that the user does not exist or his account is not activated and return
+                print('User does not exist')
                 return
-            if database.is_authenticated(id):
+            if database.is_authenticated(receiver_id):
                 return
-            ip = database.get_ip_of_user(id)
-            sock.sendto('Message Received. Forwarding...'.encode('utf-8'), self.client_address)
-            receiver_pub_key = database.get_public_key_of_user(id)
-            if receiver_pub_key is None:
-                sock.sendto('Message Received. Public Key of receiver is weird tell him '
-                            'to create a new one...'.encode('utf-8'),
+            if not database.is_online(receiver_id):
+                print('Receiver is currently not online try again later!')
+                return
+            if not database.check_api_key(message.id, message.api_key):
+                print(f'{message.from_userid} send message with invalid api key')
+                return
+            if not database.get_user_of_api_key(message.api_key)[0] == message.id:
+                print('Userid and api key do not match')
+                return
+            receiver_ip = database.get_ip_of_user(receiver_id)
+            sender: dict = database.get_user_of_api_key(message.api_key)
+            # sock.sendto('Message Received. Forwarding...'.encode('utf-8'), self.client_address)
+            receiver_pub_key = database.get_public_key_of_user(receiver_id)
+            if not database.is_online(receiver_id):
+                sock.sendto('receiver not online'.encode('utf-8'),
                             self.client_address)
                 return
             else:
-                sock.sendto(crypt.encrypt(message.text, receiver_pub_key))
+                forwarding_message = models.ForwardingClassicMessage(message, sender[0])
+                fwdmessage = str(forwarding_message)
+                sock.sendto(crypt.encrypt(fwdmessage, receiver_pub_key), receiver_ip)
+                print(f'{sender[1]}»»»{database.get_user_name_by_id(receiver_id)}')
 
         elif message.message_type == models.MessageType.LoginMessage:
             message: models.LoginMessage
             message.ip = self.client_address  # type: ignore
 
-            if database.is_online(message.id):
-                current_ip = database.get_ip_of_user(message.id)
-                receiver_pub_key = rsa.PublicKey.load_pkcs1(database.get_public_key_of_user(
-                    message.id)[0])
-                sock.sendto(crypt.encrypt(data=json.dumps({'Exception': 'NewUserLogin'}),
-                                          public_key=receiver_pub_key),
-                            current_ip)
+            # if database.is_online(message.id):
+            #    current_ip = database.get_ip_of_user(message.id)
+            #    receiver_pub_key = rsa.PublicKey.load_pkcs1(database.get_public_key_of_user(
+            #        message.id)[0])
+            #    sock.sendto(crypt.encrypt(data=json.dumps({'Exception': 'NewUserLogin'}),
+            #                              public_key=receiver_pub_key),
+            #                current_ip)
+            #    return
+            if not f'{database.get_user_name_by_id(message.id)}#{message.id}' == message.userid:
+                sock.sendto(crypt.encrypt(data=json.dumps({'Exception': 'Wrong UserID'}),
+                                          public_key=message.client_public_key),
+                            message.ip)
+                print(f'{message.ip[0]}:{message.ip[1]} tried to log in with not matching '
+                      f'username and id pair: {message.userid}')
                 return
-            database.set_online(message.id, message.ip)
+            if not database.check_password(message.id, message.hashed_password):
+                sock.sendto(crypt.encrypt(data=json.dumps({'Exception': 'Wrong Password'}),
+                                          public_key=message.client_public_key),
+                            message.ip)
+                print(f'{message.userid} tried to login with wrong password. On {message.ip[0]}:'
+                      f'{message.ip[1]}')
+                return
+
+
+            database.set_online(message.id, message.ip, message.client_public_key)
             api_key = database.generate_api_key(message.id)
-            print(message.client_public_key)
             sock.sendto(crypt.encrypt(data=api_key, public_key=message.client_public_key),
                         message.ip)
+            print(f'{message.userid} just logged in from {message.ip[0]}:{message.ip[1]}')
         elif message.message_type == models.MessageType.LogoutMessage:
             message: models.LogoutMessage
             message.ip = self.client_address
