@@ -110,7 +110,7 @@ class ServerConnection:
             'SendTime': time.time(),
             'ApiKey': self.api_key,
             'To': receiver,
-            'From': 'flinnfx#101'
+            'From': 'flinnfx#1'
         }
         if debug is True:
             pprint(message_struct)
