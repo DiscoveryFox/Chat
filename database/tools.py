@@ -29,8 +29,15 @@ import rsa.key
 
 # TODO: Finish user class.
 class User:
-    def __init__(self, id: int, username: str, hashed_password: str, api_key: list, ):
-        ...
+    def __init__(self, user_list: list,
+                 id: int = None,
+                 username: str = None,
+                 hashed_password: str = None,
+                 api_key: list = None,):
+        self._user_list = user_list
+
+    def __getitem__(self, item):
+        return self._user_list[item]
 
 
 class Database:
@@ -154,7 +161,7 @@ class Database:
             # TODO: Change user[5][1] to user object with dot notation here.
             if user[5] is not None:
                 if user[5][1] == api_key:
-                    return user
+                    return User(user)
 
     def get_all_users(self) -> list:
         self.cursor.execute("SELECT * FROM users")

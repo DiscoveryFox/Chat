@@ -24,6 +24,7 @@ class MessageType:
     ServePublicKey: str = 'ServePublicKey'
     LogoutMessage: str = 'LogoutMessage'
     ForwardingClassicMessage: str = 'ForwardingClassicMessage'
+    NoneMessage: str = 'NoneMessage'
 
 
 class UserAlreadyExists(Exception):
@@ -51,10 +52,10 @@ class LoginMessage:
 class LogoutMessage:
     message_type: str = MessageType.LogoutMessage
     ip = tuple
-    id: int
+    api_key: str
 
     def __init__(self, data):
-        self.id = data['id']
+        self.api_key = data['api_key']
 
 
 class ServePublicKey:
@@ -62,6 +63,13 @@ class ServePublicKey:
 
     def __init__(self):
         self.ip: tuple = (None, None)
+
+
+class NoneMessage:
+    message_type: str = MessageType.NoneMessage
+
+    def __init__(self, data):
+        ...
 
 
 class RegisterMessage:
@@ -86,7 +94,6 @@ class ClassicMessage:
         self.to = data['To']
         self.from_userid: str = data['From']
         self.id = self.from_userid.split('#')[1]
-
 
     def toJson(self):
         return json.dumps(self.__dict__)
@@ -125,7 +132,8 @@ class BaseMessage:
         0o2: MessageType.ClassicMessage,
         0o3: MessageType.MultimediaMessage,
         0o4: MessageType.ServePublicKey,
-        0o5: MessageType.LogoutMessage
+        0o5: MessageType.LogoutMessage,
+        0o6: MessageType.NoneMessage
     }
 
     def __new__(cls, data, private_key, encoding='utf-8', *args, **kwargs):
@@ -149,7 +157,18 @@ class BaseMessage:
             raise De
         data: str = ''.join(result)
         # data: str = rsa.decrypt(data, private_key).decode('utf-8')
-        sign_byte = int(data[:2])
+
+        try:
+            if not data == '':
+                sign_byte = int(data[:2])
+            else:
+                return NoneMessage(data1)
+        except ValueError as Ve:
+            print('Decryption Error: ')
+            print(data)
+            print('-----------------')
+            raise Ve
+
         if BaseMessage.SIGN_BYTES[sign_byte] == MessageType.ServePublicKey:
             print('ServePublicKey')
             return ServePublicKey()
@@ -166,6 +185,6 @@ class BaseMessage:
             case MessageType.MultimediaMessage:
                 return MultimediaMessage(data)
             case MessageType.LogoutMessage:
-                return LogoutMessage
+                return LogoutMessage(data)
             case _:
                 return NotImplemented

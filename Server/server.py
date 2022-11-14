@@ -101,7 +101,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 forwarding_message = models.ForwardingClassicMessage(message, sender[0])
                 fwdmessage = str(forwarding_message)
                 sock.sendto(crypt.encrypt(fwdmessage, receiver_pub_key), receiver_ip)
-                print(f'{sender[1]}»»»{database.get_user_name_by_id(receiver_id)}')
+                print(f'{sender[2]} »»» {database.get_user_name_by_id(receiver_id)}')
 
         elif message.message_type == models.MessageType.LoginMessage:
             message: models.LoginMessage
@@ -139,8 +139,14 @@ class UDPHandler(socketserver.BaseRequestHandler):
         elif message.message_type == models.MessageType.LogoutMessage:
             message: models.LogoutMessage
             message.ip = self.client_address
+            print(message.api_key)
+            user = database.get_user_of_api_key(message.api_key)
+            id = user[0]
+            username = user[1]
+            userid = user[2]
+            print(f'Logging out {userid}')
 
-            database.set_offline(message.id)
+            database.set_offline(id)
 
             '''
             1. Need to create the message structure
@@ -160,6 +166,9 @@ class UDPHandler(socketserver.BaseRequestHandler):
 
             message.ip = self.client_address
             sock.sendto(crypt.key_to_str(public_key), message.ip)
+
+        elif message.message_type == models.MessageType.NoneMessage:
+            print('None Message')
 
         # print(f'{self.client_address[0]} wrote: {data}')
         # sock.sendto(data.upper(), self.client_address)

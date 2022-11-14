@@ -18,6 +18,7 @@ class MessageType:
 class WrongPasswordError(Exception):
     ...
 
+
 class ServerConnection:
     SIGN_BYTES: dict = {
         0o0: MessageType.RegisterMessage,
@@ -36,6 +37,7 @@ class ServerConnection:
                  userid: str | None = None,
                  hashed_password: str | None = None,
                  password: str | None = None):
+        self.id = None
         self.api_key = None
         self.sock: socket.SocketType = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server_ip = ip
@@ -59,13 +61,17 @@ class ServerConnection:
             self.login(userid, password_hashed)
 
     def __enter__(self):
-        ...
+        return self
 
-    def __exit__(self, exc_val, exc_tb):
-        ...
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        print('Logging out')
+        self.logout()
+
 
     def login(self, userid: str, hashed_password: str):
         self.api_key: str
+        self.id = userid.split('#')[1]
+
         login_request: dict = {
             'UserID': userid,
             'Password': hashed_password,
@@ -82,6 +88,13 @@ class ServerConnection:
             raise WrongPasswordError
         else:
             self.api_key = response
+
+    def logout(self):
+        logout_request: dict = {
+            'api_key': self.api_key
+        }
+        logout_request_serialized = '05' + json.dumps(logout_request)
+        self.send_data(logout_request_serialized)
 
     def _send_message(self, message, sign_byte):
         """
@@ -114,7 +127,7 @@ class ServerConnection:
         }
         if debug is True:
             pprint(message_struct)
-        self.send_data('02'+json.dumps(message_struct))
+        self.send_data('02' + json.dumps(message_struct))
 
     def decrypt(self, data: bytes, encoding: str = 'utf-8') -> str:
         result: list = []
