@@ -118,7 +118,7 @@ class Database:
     def get_api_key(self, id: int):
         __new_cursor = self.connection.cursor()
         __new_cursor.execute("SELECT api_key FROM users WHERE id = ?", (id,))
-        api_key = __new_cursor.fetchone()
+        api_key = __new_cursor.fetchone()[0]
         return api_key
 
     def update_api_key(self, id: int):
@@ -141,7 +141,7 @@ class Database:
     def check_api_key(self, id: int, api_key: str):
         api_key_db = self.get_api_key(id)
         try:
-            api_key_db = json.loads(api_key_db[0])
+            api_key_db = json.loads(api_key_db)
         except TypeError:
             return False
         if api_key_db[1] == api_key:
