@@ -51,7 +51,7 @@ if public_key is None or private_key is None:
     print('Generating new Keys')
     crypt.gen_new_keys(database)
 
-
+# TODO: Set get_user_of_api_key()[0] to get_user_of_api_key() without the [0]
 # TODO: Check if the new is_online/offline works not instead of activate and/or deactive
 class UDPHandler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -65,6 +65,10 @@ class UDPHandler(socketserver.BaseRequestHandler):
         elif message.message_type == models.MessageType.ClassicMessage:
             message: models.ClassicMessage
             receiver_id: int = int(message.to.split('#')[1])
+            message.id = database.get_user_of_api_key(message.api_key)[0]
+            print(message.id)
+            print(type(message.id))
+            message.from_userid = f'{database.get_user_name_by_id(message.id)}#{message.id}'
             if not database.check_user(receiver_id):
                 # send back that the user does not exist or his account is not activated and return
                 print('User does not exist')
@@ -76,8 +80,13 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 return
             if not database.check_api_key(message.id, message.api_key):
                 print(f'{message.from_userid} send message with invalid api key')
+                print(message.api_key)
                 return
             if not database.get_user_of_api_key(message.api_key)[0] == message.id:
+                # TODO: Check if all get_user_of_api_key() only return the user part that they should
+                api_key_id = database.get_user_of_api_key(message.api_key)
+                print('API-KEY ID: ', api_key_id)
+                print('User provided id: ', message.id)
                 print('Userid and api key do not match')
                 return
             receiver_ip = database.get_ip_of_user(receiver_id)
