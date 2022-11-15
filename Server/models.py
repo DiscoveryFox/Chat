@@ -162,7 +162,7 @@ class BaseMessage:
             if not data == '':
                 sign_byte = int(data[:2])
             else:
-                return NoneMessage(data1)
+                return NoneMessage(data)
         except ValueError as Ve:
             print('Decryption Error: ')
             print(data)
