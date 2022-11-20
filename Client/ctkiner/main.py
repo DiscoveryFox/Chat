@@ -98,7 +98,8 @@ def create_chat_app():
 
     chat_label = tk.CTkLabel(master=chat_frame, justify=tk.LEFT, height=590, width=190,
                              text_font=('', 14))
-    chat_label.place(relx=0.33, rely=0.5, anchor=tk.CENTER)
+    # chat_label.place(relx=0.33, rely=0.5, anchor=tk.CENTER)
+    chat_label.pack()
 
     chat_entry = tk.CTkEntry(master=chat_frame, height=50, width=590, text_font=('', 18))
     chat_entry.place(relx=0.5, rely=0.95, anchor=tk.CENTER)
