@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>FastChat</title>
+<script src="https://cdn.socket.io/4.5.3/socket.io.min.js" integrity="sha384-WPFUvHkB1aHA5TDSZi6xtDgkF0wXJcIIxXhC6h8OT8EH3fC5PWro5pWJ1THjcfEi" crossorigin="anonymous"></script>
+<script
+  src="https://code.jquery.com/jquery-3.6.1.min.js"
+  integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ="
+  crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block body %}
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var socket = io.connect('http://127.0.0.1:5000');
+
+        socket.on('connect', function () {
+            socket.send('User has connected!');
+        });
+
+        socket.on('message', function(msg){
+            console.log('Received');
+            console.log(msg);
+            $('#messages').append('<li>' + msg + '</li>');
+        });
+
+        socket.on('json', function(jsondata) {
+            console.log(jsondata);
+            console.log('json')
+
+        })
+        $('#sendbutton').on('click', function() {
+            const message = $('#message')
+            socket.send(message.val());
+            message.val('');
+        })
+
+    })
+</script>
+
+<ul id="messages"></ul>
+<input type="text" id="message">
+<button id="sendbutton">Send</button>
+
+{% endblock %}
