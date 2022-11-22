@@ -66,11 +66,15 @@ def checkPassWordEntry(Key: tkinter.Event):
 
 def update_chat(event: tkinter.Event):
     selection = event.widget.curselection()
-    index = selection[0]
+    try:
+        index = selection[0]
+    except IndexError:
+        return
     data: str = event.widget.get(index)
     id: int = int(data.split('#')[1])
     username: str = data.split('#')[0]
-    chat_label.set_text('')
+    #chat_label.set_text('')
+    chat_label
     for message in fetch_messages(id):
         if message[0] == id:
             chat_label.set_text(chat_label.text + '\n' + f'[{username + "]:":20} {message[2]}')
@@ -90,16 +94,20 @@ def create_chat_app():
     global chat_label
     remove_everything()
     chat_app = root
-    chat_app.resizable(False, False)
-    chat_app.geometry('800x600')
+    # chat_app.resizable(False, False)
+    # chat_app.geometry('800x600')
 
     chat_frame = tk.CTkFrame(master=chat_app, height=590, width=590)
     friends_frame = tk.CTkFrame(master=chat_app, height=590, width=190)
 
-    chat_label = tk.CTkLabel(master=chat_frame, justify=tk.LEFT, height=590, width=190,
+    chat_content_frame = tk.CTkFrame(master=chat_frame, height=590, width=590)
+
+    chat_label = tk.CTkLabel(master=chat_content_frame, justify=tk.LEFT, height=590, width=190,
                              text_font=('', 14))
-    # chat_label.place(relx=0.33, rely=0.5, anchor=tk.CENTER)
-    chat_label.pack()
+    chat_label = tk.CTkTextbox(master=chat_content_frame, height=590, width=190,
+                               text_font=('', 14))
+
+    chat_label.place(relx=0, rely=0.5, anchor=tk.W)
 
     chat_entry = tk.CTkEntry(master=chat_frame, height=50, width=590, text_font=('', 18))
     chat_entry.place(relx=0.5, rely=0.95, anchor=tk.CENTER)
@@ -113,6 +121,7 @@ def create_chat_app():
                                       font=('', 15))
     # height=36, width=31,
     friends_listbox.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    chat_content_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     friends_listbox.bind('<<ListboxSelect>>', update_chat)
 
@@ -130,7 +139,7 @@ tk.set_default_color_theme('blue')
 root = tk.CTk()
 root.title('Chat Application')
 root.geometry('800x600')
-root.resizable(False, False)
+# root.resizable(False, False)
 # Creating Fonts
 
 big_font = tkfont.Font(size=20)

@@ -1,0 +1,12 @@
+.foreground {
+    border-radius: 20px;
+    min-height: 100vh;
+}
+.background {
+
+}
+
+html, body {
+    height: 100%;
+    min-height: 100vh;
+}

@@ -27,8 +27,13 @@
 
         socket.on('json', function(jsondata) {
             console.log(jsondata);
-            console.log('json')
-
+            jsondata = JSON.parse(jsondata)
+            console.log(jsondata)
+            if(jsondata === 'FETCHED_MESSAGES') {
+                // insert all messages into the localstorage. Maybe as a Hashmap/Dict with the other person in the convo
+                // as key
+                const jsondata_shifted = jsondata.shift()
+            }
         })
         $('#sendbutton').on('click', function() {
             const message = $('#message')
@@ -38,6 +43,17 @@
 
     })
 </script>
+
+<div class="contacts">
+    <div class="contact">
+        <div class="profilpic">
+
+        </div>
+        <div class="profilename">
+
+        </div>
+    </div>
+</div>
 
 <ul id="messages"></ul>
 <input type="text" id="message">

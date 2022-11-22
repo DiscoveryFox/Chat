@@ -1,0 +1,55 @@
+.contact-card {
+    position: relative;
+    background: #313131;
+    border-radius: 10px;
+    float: left;
+    text-align: left;
+    height: 70px;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.contact-card:hover {
+    background: #575757;
+}
+
+.contact-card > p {
+    margin: auto;
+    position: relative;
+    color: white;
+    font-size: xxx-large;
+}
+
+.sidebar {
+    display: flex;
+    flex-flow: column wrap;
+    grid-template-columns: repeat(1, 1fr);
+    grid-gap: 1%;
+    align-items: start;
+    background: #313131;
+    width: 20%;
+    float: left;
+    height: 100vh;
+}
+
+#contact_searchbar_outer_div {
+    height: 70px;
+    background: #575757;
+    z-index: 1;
+    border-radius: 10px;
+    width: 100%;
+}
+
+#contact_searchbar_inner_div {
+    background: white;
+    position: relative;
+    width: 100%;
+    height: 60px;
+    margin: auto;
+    top: 3px;
+    z-index: 2;
+    border-radius: 10px;
+    border: none;
+    font-size: xxx-large;
+    transform: scale(90%);
+}
