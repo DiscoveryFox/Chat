@@ -30,6 +30,13 @@ def handle_connect():
                                 [3, 1, 'Message from 3 to me']])
     send(messages_json, json=True)
 
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Front end Client disconnected!')
+
+@app.route('/get_my_username')
+def username_request():
+    return 'flinnfx#101'
 
 if __name__ == '__main__':
     socketio.run(app, allow_unsafe_werkzeug=True, debug=True)

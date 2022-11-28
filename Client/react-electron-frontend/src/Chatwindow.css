@@ -1,0 +1,43 @@
+html, body {
+    height: 100vh !important;
+    top: 0 !important;
+}
+#root {
+    height: 100vh !important;
+}
+
+#ChatWindowMain {
+    height: 100vh;
+}
+
+.ReceivedMessageBox {
+    float: left;
+    border: red;
+    background: red;
+    width: 60%;
+    text-align: left;
+}
+
+.SentMessageBox {
+    float: right;
+    border: red;
+    background: red;
+    width: 50%;
+    text-align: right;
+}
+
+.RMessage {
+    background: blue;
+    float: left;
+    border-radius: 10px;
+}
+
+.RMessage > p {
+    margin: auto;
+}
+
+.SMessage {
+    background: blue;
+    float: right;
+    border-radius: 10px;
+}

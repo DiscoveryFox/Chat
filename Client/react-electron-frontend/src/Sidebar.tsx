@@ -18,6 +18,11 @@ function Contact(name: string, id: number) {
     )
 }
 
+const example_contacts = [
+    new ContactClass('flinnfx#101', 101),
+    new ContactClass('tcgamer', 102)
+]
+
 function Sidebar(contacts: Array<ContactClass>) {
     return (
         <div className="sidebar">
@@ -33,4 +38,4 @@ function Sidebar(contacts: Array<ContactClass>) {
     )
 }
 
-export default {Sidebar, ContactClass};
+export default {Sidebar, ContactClass, example_contacts};
